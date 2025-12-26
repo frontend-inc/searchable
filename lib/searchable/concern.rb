@@ -14,7 +14,7 @@ module Searchable
       end
 
       def searchable_actions_list
-        @searchable_actions || [:index]
+        @searchable_actions
       end
     end
 
@@ -46,7 +46,8 @@ module Searchable
     private
 
     def should_parse_query?
-      self.class.searchable_actions_list.include?(action_name.to_sym)
+      list = self.class.searchable_actions_list
+      list.nil? || list.include?(action_name.to_sym)
     end
 
     def initialize_query_parser
