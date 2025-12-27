@@ -20,8 +20,8 @@ module Searchable
     DATE_REGEX = /\A\d{4}-\d{2}-\d{2}\z/
     BOOLEAN_STRINGS = %w[true false null].freeze
 
-    # Reserved params that are not filters (includes Rails routing params)
-    RESERVED_PARAMS = %w[page per_page query controller action format].freeze
+    # Reserved params that are not filters
+    RESERVED_PARAMS = %w[page per_page query format].freeze
 
     DYNAMIC_VALUES = {
       _1_day_ago: -> { 1.day.ago },
