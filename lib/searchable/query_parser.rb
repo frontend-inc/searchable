@@ -21,7 +21,7 @@ module Searchable
     BOOLEAN_STRINGS = %w[true false null].freeze
 
     # Reserved params that are not filters
-    RESERVED_PARAMS = %w[page per_page query format].freeze
+    RESERVED_PARAMS = %w[page per_page query format sort].freeze
 
     DYNAMIC_VALUES = {
       _1_day_ago: -> { 1.day.ago },
@@ -73,12 +73,28 @@ module Searchable
       @params[:per_page]&.to_i || DEFAULT_PER_PAGE
     end
 
+    def sort
+      return nil unless @params[:sort].present?
+
+      sort_value = @params[:sort].to_s
+      if sort_value.start_with?("-")
+        { field: sort_value[1..], direction: :desc }
+      else
+        { field: sort_value, direction: :asc }
+      end
+    end
+
+    def sort?
+      sort.present?
+    end
+
     def to_h
       {
         filters: filters,
         query: query,
         page: page,
-        per_page: per_page
+        per_page: per_page,
+        sort: sort
       }
     end
 

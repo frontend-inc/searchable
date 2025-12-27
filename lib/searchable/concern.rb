@@ -21,6 +21,7 @@ module Searchable
     def searchable(scope)
       scope = apply_filters(scope)
       scope = apply_search(scope)
+      scope = apply_sort(scope)
       scope = apply_pagination(scope)
       scope
     end
@@ -84,6 +85,17 @@ module Searchable
       else
         scope
       end
+    end
+
+    def apply_sort(scope)
+      return scope unless query_parser.sort?
+
+      sort_info = query_parser.sort
+      column_names = scope.klass.column_names
+
+      return scope unless column_names.include?(sort_info[:field])
+
+      scope.order(sort_info[:field] => sort_info[:direction])
     end
 
     def apply_pagination(scope)
