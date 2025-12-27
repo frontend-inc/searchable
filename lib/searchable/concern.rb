@@ -57,12 +57,18 @@ module Searchable
 
       conditions = []
       values = []
+      column_names = scope.klass.column_names
 
       query_parser.filters.each do |filter|
+        base_field = filter[:field].to_s.split(FilterBuilder::JSONB_DELIMITER).first
+        next unless column_names.include?(base_field)
+
         condition, value = FilterBuilder.build_condition(filter)
         conditions << condition
         values << value
       end
+
+      return scope if conditions.empty?
 
       sql = conditions.join(" AND ")
       scope.where(sql, *values)
