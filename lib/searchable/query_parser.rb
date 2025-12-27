@@ -85,7 +85,8 @@ module Searchable
     private
 
     def filter_params
-      @params.to_h.reject { |key, _| RESERVED_PARAMS.include?(extract_field_name(key.to_s)) }
+      params_hash = @params.respond_to?(:to_unsafe_h) ? @params.to_unsafe_h : @params.to_h
+      params_hash.reject { |key, _| RESERVED_PARAMS.include?(extract_field_name(key.to_s)) }
     end
 
     def extract_field_name(key)
