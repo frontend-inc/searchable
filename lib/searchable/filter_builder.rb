@@ -20,21 +20,6 @@ module Searchable
         end
       end
 
-      def build_sort_condition(order)
-        return nil unless order
-
-        sort_by = order[:sort_by]
-        sort_direction = order[:sort_direction]
-
-        jsonb_column, field_name = parse_jsonb_field(sort_by)
-
-        if jsonb_column
-          Arel.sql("#{jsonb_column} ->> '#{field_name}' #{sort_direction}")
-        else
-          { sort_by.to_sym => sort_direction }
-        end
-      end
-
       private
 
       def parse_jsonb_field(field)
@@ -51,13 +36,7 @@ module Searchable
 
       def build_jsonb_condition(jsonb_column, field_name, operator, value)
         formatted_value = format_jsonb_value(value)
-
-        condition = if operator == "BETWEEN"
-                      "#{jsonb_column} ->> '#{field_name}' #{operator} ? AND ?"
-                    else
-                      "#{jsonb_column} ->> '#{field_name}' #{operator} (?)"
-                    end
-
+        condition = "#{jsonb_column} ->> '#{field_name}' #{operator} (?)"
         [condition, formatted_value]
       end
 

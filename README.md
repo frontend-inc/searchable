@@ -1,6 +1,6 @@
 # Searchable
 
-A Ruby gem that provides a clean DSL for parsing URL query parameters and applying filters, sorting, and pagination to ActiveRecord models.
+A Ruby gem that provides a clean DSL for parsing URL query parameters and applying filters and pagination to ActiveRecord models.
 
 ## Installation
 
@@ -28,27 +28,36 @@ end
 
 | Parameter | Example | Description |
 |-----------|---------|-------------|
-| `filters` | `status:eq:published,views:gt:100` | Filter records |
-| `order` | `created_at:desc` | Sort results |
+| `field=value` | `status=active` | Filter by equality |
+| `field:operator=value` | `age:gte=21` | Filter with operator |
+| `query` | `hello world` | Full-text search |
 | `page` | `2` | Page number |
 | `per_page` | `25` | Results per page |
-| `include` | `author,comments` | Eager load associations |
-| `keywords` | `ruby rails` | Full-text search (requires `pg_search` or `search` scope) |
+
+### Filter Examples
+
+```
+?status=active
+?age:gte=21
+?user_id=me
+?status:in=active,pending,draft
+?created_at:gte=2025-10-18
+?query=hello+world
+```
 
 ### Filter Operators
 
-- `eq` / `neq` - equals / not equals
+- `eq` / `neq` - equals / not equals (default: `eq`)
 - `gt` / `gte` - greater than / greater than or equal
 - `lt` / `lte` - less than / less than or equal
 - `in` / `nin` - in array / not in array
-- `btw` - between two values
 
 ### Dynamic Values
 
-Filters support dynamic date values: `_1_day_ago`, `_7_days_ago`, `_30_days_ago`, `_current_time`, etc.
+Filters support dynamic date values: `1_day_ago`, `7_days_ago`, `30_days_ago`, `current_time`, etc.
 
 ```
-/articles?filters=created_at:gte:_7_days_ago
+?created_at:gte=7_days_ago
 ```
 
 ## License

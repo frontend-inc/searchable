@@ -19,10 +19,8 @@ module Searchable
     end
 
     def searchable(scope)
-      scope = apply_includes(scope)
       scope = apply_filters(scope)
       scope = apply_search(scope)
-      scope = apply_sort(scope)
       scope = apply_pagination(scope)
       scope
     end
@@ -54,12 +52,6 @@ module Searchable
       @query_parser = QueryParser.new(params)
     end
 
-    def apply_includes(scope)
-      return scope unless query_parser.includes?
-
-      scope.includes(*query_parser.includes.map(&:to_sym))
-    end
-
     def apply_filters(scope)
       return scope unless query_parser.filters?
 
@@ -69,12 +61,7 @@ module Searchable
       query_parser.filters.each do |filter|
         condition, value = FilterBuilder.build_condition(filter)
         conditions << condition
-
-        if filter[:operator] == "BETWEEN"
-          values.concat(value[0..1])
-        else
-          values << value
-        end
+        values << value
       end
 
       sql = conditions.join(" AND ")
@@ -82,22 +69,15 @@ module Searchable
     end
 
     def apply_search(scope)
-      return scope unless query_parser.keywords?
+      return scope unless query_parser.query?
 
       if scope.respond_to?(:pg_search)
-        scope.pg_search(query_parser.keywords)
+        scope.pg_search(query_parser.query)
       elsif scope.respond_to?(:search)
-        scope.search(query_parser.keywords)
+        scope.search(query_parser.query)
       else
         scope
       end
-    end
-
-    def apply_sort(scope)
-      return scope unless query_parser.order?
-
-      condition = FilterBuilder.build_sort_condition(query_parser.order)
-      scope.order(condition)
     end
 
     def apply_pagination(scope)

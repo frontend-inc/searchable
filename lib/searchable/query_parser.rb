@@ -3,7 +3,6 @@
 module Searchable
   class QueryParser
     DEFAULT_PER_PAGE = 20
-    SORT_DIRECTIONS = %w[asc desc].freeze
     DELIMITER = ":"
 
     OPERATORS = {
@@ -14,32 +13,15 @@ module Searchable
       eq: "=",
       neq: "!=",
       in: "IN",
-      nin: "NOT IN",
-      btw: "BETWEEN"
+      nin: "NOT IN"
     }.freeze
 
-    ARRAY_OPERATORS = %w[in nin btw].freeze
+    ARRAY_OPERATORS = %w[in nin].freeze
     DATE_REGEX = /\A\d{4}-\d{2}-\d{2}\z/
     BOOLEAN_STRINGS = %w[true false null].freeze
 
-    # Comma not inside square braces
-    FILTER_DELIMITER = /
-      ,         # match comma
-      (?!       # if not followed by
-      [^\[]*    # anything except an open brace [
-      \]        # followed by a closing brace ]
-      )         # end lookahead
-    /x
-
-    DATE_PERIODS = %i[second minute hour day week month quarter year].freeze
-
-    AGGREGATIONS = {
-      avg: "average",
-      sum: "sum",
-      min: "minimum",
-      max: "maximum",
-      count: "count"
-    }.freeze
+    # Reserved params that are not filters
+    RESERVED_PARAMS = %w[page per_page query].freeze
 
     DYNAMIC_VALUES = {
       _1_day_ago: -> { 1.day.ago },
@@ -65,85 +47,22 @@ module Searchable
       @params = params
     end
 
-    def keywords
-      return nil unless @params[:keywords]
-
-      if @params[:keywords].include?(DELIMITER)
-        @params[:keywords].split(DELIMITER)
-      else
-        @params[:keywords]
-      end
+    def query
+      @params[:query]
     end
 
-    def keywords?
-      keywords.present?
-    end
-
-    def select_fields
-      return [] unless @params[:select]
-
-      @params[:select].split(",").map do |field|
-        field_name, aggregation = field.strip.split(DELIMITER)
-
-        if aggregation.present? && AGGREGATIONS.key?(aggregation.to_sym)
-          [field_name, AGGREGATIONS[aggregation.to_sym]]
-        else
-          [field_name]
-        end
-      end
-    end
-
-    def select?
-      select_fields.any?
-    end
-
-    def order
-      return nil unless @params[:order]
-
-      sort_by, sort_direction = @params[:order].split(DELIMITER)
-      sort_direction = "desc" unless SORT_DIRECTIONS.include?(sort_direction)
-
-      { sort_by: sort_by, sort_direction: sort_direction }
-    end
-
-    def order?
-      order.present?
-    end
-
-    def includes
-      return nil unless @params[:include]
-
-      @params[:include].split(",").map(&:strip)
-    end
-
-    def includes?
-      includes.present?
+    def query?
+      query.present?
     end
 
     def filters
-      return [] unless @params[:filters]
-
-      @params[:filters].split(FILTER_DELIMITER).map do |filter_param|
-        parse_filter(filter_param)
+      filter_params.map do |key, value|
+        parse_filter_param(key.to_s, value)
       end
     end
 
     def filters?
       filters.any?
-    end
-
-    def group_by
-      return [] unless @params[:group_by].present?
-
-      @params[:group_by].split(",").map do |field|
-        field_name, date_period = field.strip.split(DELIMITER)
-
-        if date_period.present? && DATE_PERIODS.include?(date_period.to_sym)
-          [field_name, date_period]
-        else
-          [field_name]
-        end
-      end
     end
 
     def page
@@ -157,20 +76,24 @@ module Searchable
     def to_h
       {
         filters: filters,
-        group_by: group_by,
-        includes: includes,
-        keywords: keywords,
-        order: order,
+        query: query,
         page: page,
-        per_page: per_page,
-        select_fields: select_fields
+        per_page: per_page
       }
     end
 
     private
 
-    def parse_filter(filter_param)
-      field, operator_key, value = filter_param.split(DELIMITER, 3)
+    def filter_params
+      @params.to_h.reject { |key, _| RESERVED_PARAMS.include?(extract_field_name(key.to_s)) }
+    end
+
+    def extract_field_name(key)
+      key.split(DELIMITER).first
+    end
+
+    def parse_filter_param(key, value)
+      field, operator_key = key.split(DELIMITER, 2)
       operator_key = "eq" unless OPERATORS.key?(operator_key&.to_sym)
       operator = OPERATORS[operator_key.to_sym]
 
@@ -186,7 +109,7 @@ module Searchable
     def parse_array_value(value)
       return [] unless value
 
-      value.gsub(/\A\[|\]\z/, "").split(",").map { |v| transform_value(v.strip) }
+      value.to_s.split(",").map { |v| transform_value(v.strip) }
     end
 
     def transform_value(value)
