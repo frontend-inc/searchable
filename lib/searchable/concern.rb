@@ -88,12 +88,15 @@ module Searchable
     end
 
     def apply_sort(scope)
-      return scope unless query_parser.sort?
-
-      sort_info = query_parser.sort
       column_names = scope.klass.column_names
 
-      return scope unless column_names.include?(sort_info[:field])
+      sort_info = if query_parser.sort?
+                    query_parser.sort
+                  elsif column_names.include?("created_at")
+                    { field: "created_at", direction: :desc }
+                  end
+
+      return scope unless sort_info && column_names.include?(sort_info[:field])
 
       scope.order(sort_info[:field] => sort_info[:direction])
     end
