@@ -26,7 +26,7 @@ module Searchable
     end
 
     def query_parser
-      @query_parser ||= QueryParser.new(params)
+      @query_parser ||= QueryParser.new(request.query_parameters)
     end
 
     def page_info(resources)
@@ -49,7 +49,7 @@ module Searchable
     end
 
     def initialize_query_parser
-      @query_parser = QueryParser.new(params)
+      @query_parser = QueryParser.new(request.query_parameters)
     end
 
     def apply_filters(scope)
